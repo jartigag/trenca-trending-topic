@@ -19,9 +19,9 @@ def main(verbose):
 	auth = tweepy.OAuthHandler(secrets[s]['consumer_key'], secrets[s]['consumer_secret'])
 	auth.set_access_token(secrets[s]['access_token'], secrets[s]['access_token_secret'])
 	api = tweepy.API(auth, compression=True)
-	#trendingTopics = []
-	##TODO##
-	#return trendingTopics
+	tt = api.trends_place(23424950)
+	for t in tt[0]['trends']:
+		print(tt[0]['trends'].index(t)+1,'-',t['name'])
 
 if __name__ == '__main__':
 
@@ -33,10 +33,8 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	try:
-	    main(verbose)
+	    main(args.verbose)
 	except tweepy.error.TweepError as e:
 	    print("[\033[91m!\033[0m] twitter error: %s" % e)
-	    logger.error("[!] twitter error: %s" % e)
 	except Exception as e:
 	    print("[\033[91m!\033[0m] error: %s" % e)
-	    logger.error("[!] error: %s" % e)
