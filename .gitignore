@@ -3,3 +3,8 @@
 
 # Secrets python file
 secrets.py
+
+# DB files
+*.db
+*.json
+!/woeids.json
