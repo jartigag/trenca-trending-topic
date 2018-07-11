@@ -1,5 +1,13 @@
 {
 	"worldwide": 1,
 	"spain": 23424950,
-	"madrid": 766273
+	"madrid": 766273,
+	"barcelona": 753692,
+
+	"argentina":23424747,
+	"chile":23424782,
+	"colombia":23424787,
+	"ecuador":23424801,
+	"perú":23424919,
+	"república dominicana":23424800
 }
