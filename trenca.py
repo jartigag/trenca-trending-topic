@@ -7,7 +7,6 @@ __version__ = '0.1'
 
 #TO-DO LIST (11/07/2018)
 #TODO: add options to store data: [-d] in sqlite database, [-f dbFile.json] in json file
-#TODO: store TTs like this: {'12:00':[data1],'12:05':[data2]}
 
 import tweepy
 import argparse
@@ -20,7 +19,7 @@ from secrets import secrets
 s = 0 # counter of the actual secret: secrets[i]
 
 woeids = json.load(open('woeids.json'))
-results = []
+results = {}
 n=0 # number of api reqs
 
 def main(verbose,outFile):
@@ -31,14 +30,16 @@ def main(verbose,outFile):
 		init_time = time()
 		auth = tweepy.OAuthHandler(secrets[s]['consumer_key'], secrets[s]['consumer_secret'])
 		auth.set_access_token(secrets[s]['access_token'], secrets[s]['access_token_secret'])
+		dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 		api = tweepy.API(auth, compression=True)
-		results.append(dt)
 		for place in woeids:
 			tt = api.trends_place(woeids[place])
 			n+=1
-			dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 			print('[*]',dt,place.upper())
-			results[dt].append([dt,place,woeids[place],tt[0]])
+			if dt in results: #if this 'place' isn't the first consulted in this 'dt'
+				results[dt] += [tt[0]] #append new results list
+			else:
+				results[dt] = [tt[0]] #create key 'dt' and add new results list
 			for t in tt[0]['trends']:
 				print('	','%02d'%(tt[0]['trends'].index(t)+1),'-',t['name'],
 					'(%s tweets)'%(t['tweet_volume']) if t['tweet_volume'] is not None else '')
@@ -57,8 +58,8 @@ def main(verbose,outFile):
 			s=0
 	except tweepy.error.TweepError as e:
 		print("[\033[91m!\033[0m] twitter error: %s" % e)
-#	except Exception as e:
-#		print("[\033[91m!\033[0m] error: %s" % e)
+	except Exception as e:
+		print("[\033[91m!\033[0m] error: %s" % e)
 
 def write_data(outFile):
 	# print results as a json (an array of jsons, actually) to dbFile
@@ -80,3 +81,14 @@ if __name__ == '__main__':
 			main(args.verbose,args.file)
 	else:
 		main(args.verbose,args.file)
+
+'''
+extract info in console (example):
+data = json.load(open('dbFile.json'))
+for d in data:
+	print('== %s =='%(d))
+	for i in range(0,len(data[d])):
+		print('*',data[d][i]['locations'][0]['name'])
+		for j in range(0,3):
+			print(' ',j+1,data[d][i]['trends'][j]['name'])
+'''
