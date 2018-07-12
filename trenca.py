@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # just a script to collect twitter's TTs
+#
+# usage: python3 trenca.py -cvf dbFile.json
 
 __author__ = "@jartigag"
 __version__ = '0.1'
@@ -13,7 +15,6 @@ import argparse
 import json
 from datetime import datetime
 from time import time,sleep
-import os
 
 from secrets import secrets
 s = 0 # counter of the actual secret: secrets[i]
@@ -24,7 +25,6 @@ n=0 # number of api reqs
 
 def main(verbose,outFile):
 	global secrets,s,results,n
-	five_mins = 300 # secs between reqs
 	try:
 
 		init_time = time()
@@ -35,17 +35,17 @@ def main(verbose,outFile):
 		for place in woeids:
 			tt = api.trends_place(woeids[place])
 			n+=1
-			print('[*]',dt,place.upper())
 			if dt in results: #if this 'place' isn't the first consulted in this 'dt'
 				results[dt] += [tt[0]] #append new results list
 			else:
 				results[dt] = [tt[0]] #create key 'dt' and add new results list
-			for t in tt[0]['trends']:
-				print('	','%02d'%(tt[0]['trends'].index(t)+1),'-',t['name'],
-					'(%s tweets)'%(t['tweet_volume']) if t['tweet_volume'] is not None else '')
+			if verbose:
+				print('[*]',dt,place.upper())
+				for t in tt[0]['trends']:
+					print('	','%02d'%(tt[0]['trends'].index(t)+1),'-',t['name'],
+						'(%s tweets)'%(t['tweet_volume']) if t['tweet_volume'] is not None else '')
 		if outFile:	
 			write_data(outFile)
-		sleep(five_mins)
 
 	except tweepy.error.RateLimitError as e:
 		current_time = time()
@@ -79,6 +79,8 @@ if __name__ == '__main__':
 	if args.continuum:
 		while True:
 			main(args.verbose,args.file)
+			five_mins = 300 # secs between reqs
+			sleep(five_mins)
 	else:
 		main(args.verbose,args.file)
 
