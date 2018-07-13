@@ -13,6 +13,7 @@ __version__ = '0.1'
 import tweepy
 import argparse
 import json
+from collections import OrderedDict
 from datetime import datetime
 from time import time,sleep
 
@@ -85,7 +86,7 @@ if __name__ == '__main__':
 		main(args.verbose,args.file)
 
 '''
-extract info in console (example):
+# extract info in console (example):
 data = json.load(open('dbFile.json'))
 for d in data:
 	print('== %s =='%(d))
@@ -93,4 +94,16 @@ for d in data:
 		print('*',data[d][i]['locations'][0]['name'])
 		for j in range(0,3):
 			print(' ',j+1,data[d][i]['trends'][j]['name'])
+'''
+'''
+# let's see if TTs change significantly each 5 mins:
+tts = json.load(open("dbFile.json"),object_pairs_hook=OrderedDict)
+index_tts = list(tts)
+for t in index_tts[0:5]:
+	print('[*]',t)
+	for i in range(0,len(tts[t])):
+			print(tts[t][i]['locations'][0]['name'],'-',tts[t][i]['trends'][0]['name'])
+	print()
+
+# they're nearly the same -> probably it would be better if the script retrieved less data
 '''
