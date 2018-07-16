@@ -7,12 +7,13 @@
 __author__ = "@jartigag"
 __version__ = '0.1'
 
-#TO-DO LIST (11/07/2018)
-#TODO: add options to store data: [-d] in sqlite database, [-f dbFile.json] in json file
+#TO-DO LIST (16/07/2018)
+#WIP: add options to store data: [-d] in sqlite database
 
 import tweepy
 import argparse
 import json
+import sqlite3
 from collections import OrderedDict
 from datetime import datetime
 from time import time,sleep
@@ -24,7 +25,7 @@ woeids = json.load(open('woeids.json'))
 results = {}
 n=0 # number of api reqs
 
-def main(verbose,outFile):
+def main(verbose,outFileJSON,outFileDB):
 	global secrets,s,results,n
 	try:
 
@@ -45,13 +46,15 @@ def main(verbose,outFile):
 				for t in tt[0]['trends']:
 					print('	','%02d'%(tt[0]['trends'].index(t)+1),'-',t['name'],
 						'(%s tweets)'%(t['tweet_volume']) if t['tweet_volume'] is not None else '')
-		if outFile:	
-			write_data(outFile)
+		if outFileJSON:	
+			write_json(outFileJSON)
+		elif outFileDB:
+			write_sqlite(outFileDB)
 
 	except tweepy.error.RateLimitError as e:
 		current_time = time()
 		running_time = int(current_time - init_time)
-		print("[\033[91m#\033[0m] api limit reached! \033[1m%i\033[0m api reqs were made (running time: %i secs, pauses: %i secs, secrets%i)." % (n,running_time,t,s))
+		print("[\033[91m#\033[0m] api limit reached! \033[1m%i\033[0m api reqs were made (running time: %i secs,secrets%i)." % (n,running_time,s))
 		# rotate secrets[s]
 		if s < len(secrets)-1:
 			s+=1
@@ -59,13 +62,53 @@ def main(verbose,outFile):
 			s=0
 	except tweepy.error.TweepError as e:
 		print("[\033[91m!\033[0m] twitter error: %s" % e)
-	except Exception as e:
-		print("[\033[91m!\033[0m] error: %s" % e)
+	#except Exception as e:
+	#	print("[\033[91m!\033[0m] error: %s" % e)
 
-def write_data(outFile):
-	# print results as a json (an array of jsons, actually) to dbFile
+def write_json(outFile):
+	"""
+	write results as a json (an array of jsons, actually) to dbFile
+
+	:param outFile: .json output file 
+	"""
 	with open(outFile,'w') as f:
 		print(json.dumps(results,indent=2,sort_keys=True),file=f)
+
+def write_sqlite(outFile):
+	"""
+	write results as a sqlite database to dbFile
+
+	:param outFile: .db sqlite database file
+	"""
+	conn = sqlite3.connect(outFile)
+	conn.execute('''CREATE TABLE IF NOT EXISTS trending_topics
+			 (ID			INT PRIMARY KEY NOT NULL,
+			 DT				TEXT NOT NULL,
+			 OTHER_FIELD	CHAR(50));''')
+
+	for dt in results:
+		i=1
+		conn.execute("INSERT INTO trending_topics (ID,DT,OTHER_FIELD) \
+			VALUES ("+str(i)+",'"+dt+"', 'more_things');")
+		conn.commit()
+		i+=1
+
+	'''
+	conn.execute("UPDATE COMPANY set SALARY = 25000.00 where ID = 1")
+	conn.commit
+	print "Total number of rows updated :", conn.total_changes
+
+	cursor = conn.execute("SELECT id, name, address, salary from COMPANY")
+	for row in cursor:
+	   print "ID = ", row[0]
+	   print "NAME = ", row[1]
+	   print "ADDRESS = ", row[2]
+	   print "SALARY = ", row[3], "\n"
+
+	print "Operation done successfully";
+	'''
+
+	conn.close()
 
 if __name__ == '__main__':
 
@@ -73,6 +116,7 @@ if __name__ == '__main__':
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
 		usage="%(prog)s [-v]")
 	parser.add_argument('-c','--continuum',action='store_true',help='run continuously')
+	parser.add_argument('-d','--database',help='store data in sqlite database file. e.g.: -d sqliteFile.db')
 	parser.add_argument('-f','--file',help='store data in json file. e.g.: -f dbFile.json')
 	parser.add_argument('-v','--verbose',action='store_true')
 	args = parser.parse_args()
@@ -80,10 +124,10 @@ if __name__ == '__main__':
 	if args.continuum:
 		while True:
 			main(args.verbose,args.file)
-			five_mins = 300 # secs between reqs
-			sleep(five_mins)
+			fifteen_mins = 60*15 # secs between reqs
+			sleep(fifteen_mins)
 	else:
-		main(args.verbose,args.file)
+		main(args.verbose,args.file,args.database)
 
 '''
 # extract info in console (example):
