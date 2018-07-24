@@ -7,7 +7,7 @@
 __author__ = "@jartigag"
 __version__ = '0.1'
 
-#TO-DO LIST (16/07/2018)
+#TO-DO LIST (24/07/2018)
 #WIP: add options to store data: [-d] in sqlite database
 
 import tweepy
@@ -82,16 +82,21 @@ def write_sqlite(outFile):
 	"""
 	conn = sqlite3.connect(outFile)
 	conn.execute('''CREATE TABLE IF NOT EXISTS trending_topics
-			 (ID			INT PRIMARY KEY NOT NULL,
-			 DT				TEXT NOT NULL,
-			 OTHER_FIELD	CHAR(50));''')
+			 (id			INT PRIMARY KEY,
+			 dt				TEXT,
+			 woeid			INT,
+			 location		TEXT);''')
 
 	for dt in results:
-		i=1
-		conn.execute("INSERT INTO trending_topics (ID,DT,OTHER_FIELD) \
-			VALUES ("+str(i)+",'"+dt+"', 'more_things');")
-		conn.commit()
-		i+=1
+		for loc in results[dt]:
+			conn.execute("INSERT INTO trending_topics (dt,woeid,location) \
+				VALUES ('"+dt+"',"+str(loc['locations'][0]['woeid'])+",'"+loc['locations'][0]['name']+"');")
+			conn.execute("CREATE TABLE IF NOT EXISTS '"+str(loc['locations'][0]['woeid'])+"_"+loc['locations'][0]['name']+"'\
+					 (id			INT PRIMARY KEY,\
+					 as_of			TEXT,\
+					 created_at		TEXT,\
+					 locations		TEXT);")
+			conn.commit()
 
 	'''
 	conn.execute("UPDATE COMPANY set SALARY = 25000.00 where ID = 1")
@@ -114,7 +119,7 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
-		usage="%(prog)s [-v]")
+		usage="%(prog)s [-cdfv]")
 	parser.add_argument('-c','--continuum',action='store_true',help='run continuously')
 	parser.add_argument('-d','--database',help='store data in sqlite database file. e.g.: -d sqliteFile.db')
 	parser.add_argument('-f','--file',help='store data in json file. e.g.: -f dbFile.json')
@@ -123,7 +128,7 @@ if __name__ == '__main__':
 
 	if args.continuum:
 		while True:
-			main(args.verbose,args.file)
+			main(args.verbose,args.file,args.database)
 			fifteen_mins = 60*15 # secs between reqs
 			sleep(fifteen_mins)
 	else:
