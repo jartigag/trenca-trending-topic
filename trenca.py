@@ -25,7 +25,7 @@ woeids = json.load(open('woeids.json'))
 results = {}
 n=0 # number of api reqs
 
-def main(verbose,outFileJSON,outFileDB):
+def main(verbose,format,file):
 	global secrets,s,results,n
 	try:
 
@@ -46,10 +46,10 @@ def main(verbose,outFileJSON,outFileDB):
 				for t in tt[0]['trends']:
 					print('	','%02d'%(tt[0]['trends'].index(t)+1),'-',t['name'],
 						'(%s tweets)'%(t['tweet_volume']) if t['tweet_volume'] is not None else '')
-		if outFileJSON:	
-			write_json(outFileJSON)
-		elif outFileDB:
-			write_sqlite(outFileDB)
+		if format=='json':
+			write_json(file)
+		elif format=='sqlite':
+			write_sqlite(file)
 
 	except tweepy.error.RateLimitError as e:
 		current_time = time()
@@ -121,18 +121,18 @@ if __name__ == '__main__':
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
 		usage="%(prog)s [-cdfv]")
 	parser.add_argument('-c','--continuum',action='store_true',help='run continuously')
-	parser.add_argument('-d','--database',help='store data in sqlite database file. e.g.: -d sqliteFile.db')
-	parser.add_argument('-f','--file',help='store data in json file. e.g.: -f dbFile.json')
 	parser.add_argument('-v','--verbose',action='store_true')
+	parser.add_argument('-f','--format',choices=['json','sqlite'],default='json',help='format to store data')
+	parser.add_argument('file',help='output file to store data')
 	args = parser.parse_args()
 
 	if args.continuum:
 		while True:
-			main(args.verbose,args.file,args.database)
+			main(args.verbose,args.format,args.file)
 			fifteen_mins = 60*15 # secs between reqs
 			sleep(fifteen_mins)
 	else:
-		main(args.verbose,args.file,args.database)
+		main(args.verbose,args.format,args.file)
 
 '''
 # extract info in console (example):
