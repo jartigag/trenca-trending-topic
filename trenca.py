@@ -22,7 +22,7 @@ from time import time,sleep
 from secrets import secrets
 s = 0 # counter of the actual secret: secrets[i]
 
-SLEEP_INTERVAL = 5 # secs between reqs
+SLEEP_INTERVAL = 15*60 # secs between reqs
 woeids = json.load(open('woeids.json'),object_pairs_hook=OrderedDict)
 results = {}
 n=0 # number of api reqs
@@ -45,11 +45,7 @@ def main(verbose,format,file,nTop, nLocs):
 				results[dt] = [{'as_of':tt[0]['as_of'],'locations':tt[0]['locations'],'trends':tt[0]['trends'][:nTop]}] #create key 'dt' and add new results list
 			if verbose:
 				print('[*]',dt,place.upper())
-				if nTop:
-					end = nTop
-				else:
-					end = len(tt[0]['trends'])-1
-				for t in tt[0]['trends'][:end]:
+				for t in tt[0]['trends'][:nTop]:
 					print('	','%02d'%(tt[0]['trends'].index(t)+1),'-',t['name'],
 						'(%s tweets)'%(t['tweet_volume']) if t['tweet_volume'] is not None else '')
 		if format=='json':
