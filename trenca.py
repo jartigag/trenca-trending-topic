@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # just a script to collect twitter's TTs
 #
-# usage: python3 trenca.py -cvf json dbFile.json
+# usage: python3 trenca.py db.json -vc -n NUMBER -l NUMBER
 
 __author__ = "@jartigag"
 __version__ = '0.1'
@@ -13,6 +13,7 @@ __version__ = '0.1'
 import tweepy
 import argparse
 import json
+from collections import OrderedDict
 import sqlite3
 from collections import OrderedDict
 from datetime import datetime
@@ -22,11 +23,11 @@ from secrets import secrets
 s = 0 # counter of the actual secret: secrets[i]
 
 SLEEP_INTERVAL = 5 # secs between reqs
-woeids = json.load(open('woeids.json'))
+woeids = json.load(open('woeids.json'),object_pairs_hook=OrderedDict)
 results = {}
 n=0 # number of api reqs
 
-def main(verbose,format,file,nTop):
+def main(verbose,format,file,nTop, nLocs):
 	global secrets,s,results,n
 	try:
 
@@ -35,13 +36,13 @@ def main(verbose,format,file,nTop):
 		auth.set_access_token(secrets[s]['access_token'], secrets[s]['access_token_secret'])
 		dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 		api = tweepy.API(auth, compression=True)
-		for place in woeids:
+		for place in list(woeids)[:nLocs]:
 			tt = api.trends_place(woeids[place])
 			n+=1
 			if dt in results: #if this 'place' isn't the first consulted in this 'dt'
-				results[dt] += [tt[0]] #append new results list
+				results[dt].append({'as_of':tt[0]['as_of'],'locations':tt[0]['locations'],'trends':tt[0]['trends'][:nTop]}) #append new results list
 			else:
-				results[dt] = [tt[0]] #create key 'dt' and add new results list
+				results[dt] = [{'as_of':tt[0]['as_of'],'locations':tt[0]['locations'],'trends':tt[0]['trends'][:nTop]}] #create key 'dt' and add new results list
 			if verbose:
 				print('[*]',dt,place.upper())
 				if nTop:
@@ -78,13 +79,17 @@ def write_json(outFile):
 	:param outFile: .json output file 
 	"""
 	with open(outFile,'w') as f:
-		print("[",file=f)
+		print("{",file=f)
 		for dt in results:
+			print('"%s":'%(dt),file=f)
+			print("[",file=f)
 			for loc in results[dt]:
-				print("[",file=f)
-				print(json.dumps(loc,indent=2,sort_keys=True),file=f)
-				print("],",file=f) #TODO: avoid to remove last "," manually
-		print("],",file=f) #TODO: avoid to remove last "," manually
+				if results[dt].index(loc)==len(results[dt])-1: #last element:
+					print(json.dumps(loc,indent=2,sort_keys=True),file=f)
+				else:
+					print(json.dumps(loc,indent=2,sort_keys=True),end=",",file=f)
+			print("],",file=f) #TODO: avoid to remove last "," manually
+		print("}",file=f)
 
 def write_sqlite(outFile):
 	#TODO:
@@ -115,7 +120,7 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
-		usage="%(prog)s [-cdfv]")
+		usage="%(prog)s [-cdfv] [-n] NUMBER [-l] NUMBER")
 	parser.add_argument('-c','--continuum',action='store_true',
 		help='run continuously')
 	parser.add_argument('-v','--verbose',action='store_true')
@@ -123,12 +128,14 @@ if __name__ == '__main__':
 		help='format to store data')
 	parser.add_argument('-n','--nTopTTs', type=int, metavar='NUMBER',
 		help='limit to NUMBER top TTs on every location')
+	parser.add_argument('-l','--nFirstLocations', type=int, metavar='NUMBER',
+		help='limit to NUMBER first locations (sorted as in woeids.json)')
 	parser.add_argument('file',help='output file to store data')
 	args = parser.parse_args()
 
 	if args.continuum:
 		while True:
-			main(args.verbose,args.format,args.file,args.nTopTTs)
+			main(args.verbose,args.format,args.file,args.nTopTTs,args.nFirstLocations)
 			sleep(SLEEP_INTERVAL)
 	else:
-		main(args.verbose,args.format,args.file,args.nTopTTs)
+		main(args.verbose,args.format,args.file,args.nTopTTs,args.nFirstLocations)
