@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 # just a script to collect twitter's TTs
 #
-# usage: python3 trenca.py db.json -vc -n NUMBER -l NUMBER
+# usage: python3 trenca.py FILE [-cdfv] [-n] NUMBER [-l] NUMBER
 
 __author__ = "@jartigag"
-__version__ = '0.1'
-
-#TO-DO LIST
-# - sqlite database
+__version__ = '0.5'
 
 import tweepy
 import argparse
@@ -88,27 +85,23 @@ def write_json(outFile):
 		print("}",file=f)
 
 def write_sqlite(outFile):
-	#TODO:
 	"""
 	write results as a sqlite database to dbFile
 
 	:param outFile: .db sqlite database file
 	"""
 	conn = sqlite3.connect(outFile)
-	conn.execute('''CREATE TABLE IF NOT EXISTS trending_topics
-			 (id			INT PRIMARY KEY,
-			 dt				TEXT,
-			 woeid			INT,
-			 location		TEXT);''')
 	for dt in results:
 		for loc in results[dt]:
-			conn.execute("INSERT INTO trending_topics (dt,woeid,location) \
-				VALUES ('"+dt+"',"+str(loc['locations'][0]['woeid'])+",'"+loc['locations'][0]['name']+"');")
-			conn.execute("CREATE TABLE IF NOT EXISTS '"+str(loc['locations'][0]['woeid'])+"_"+loc['locations'][0]['name']+"'\
-					 (id			INT PRIMARY KEY,\
-					 as_of			TEXT,\
-					 created_at		TEXT,\
-					 locations		TEXT);")
+			conn.execute("CREATE TABLE IF NOT EXISTS '"+loc['locations'][0]['name']+"'\
+					 (id			INTEGER PRIMARY KEY AUTOINCREMENT,\
+					 dt				TEXT, \
+					 trend			TEXT,\
+					 tweet_volume	INT);")
+			for tt in loc['trends']:
+				conn.execute("INSERT INTO "+loc['locations'][0]['name']+" (dt,trend,tweet_volume) \
+					VALUES ('"+dt+"','"+tt['name']+"',"+\
+					str(tt['tweet_volume'] if tt['tweet_volume'] is not None else '0')+");")
 			conn.commit()
 	conn.close()
 
@@ -116,7 +109,7 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
-		usage="%(prog)s [-cdfv] [-n] NUMBER [-l] NUMBER")
+		usage="%(prog)s FILE [-cdfv] [-n] NUMBER [-l] NUMBER")
 	parser.add_argument('-c','--continuum',action='store_true',
 		help='run continuously')
 	parser.add_argument('-v','--verbose',action='store_true')
