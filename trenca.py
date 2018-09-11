@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # just a script to collect twitter's TTs
 #
-# usage: python3 trenca.py FILE [-cdfv] [-n] NUMBER [-l] NUMBER
+# usage: python3 trenca.py FILE [-cfv] [-n] NUMBER [-l] NUMBER
 
 __author__ = "@jartigag"
 __version__ = '0.5'
@@ -15,6 +15,9 @@ import sqlite3
 from collections import OrderedDict
 from datetime import datetime
 from time import time,sleep
+import signal
+import sys
+import os
 
 from secrets import secrets
 s = 0 # counter of the actual secret: secrets[i]
@@ -23,6 +26,8 @@ SLEEP_INTERVAL = 15*60 # secs between reqs
 woeids = json.load(open('woeids.json'),object_pairs_hook=OrderedDict)
 results = {}
 n=0 # number of api reqs
+FORMAT = "json"
+FILE = ""
 
 def main(verbose,format,file,nTop, nLocs):
 	global secrets,s,results,n
@@ -81,7 +86,7 @@ def write_json(outFile):
 					print(json.dumps(loc,indent=2,sort_keys=True),file=f)
 				else:
 					print(json.dumps(loc,indent=2,sort_keys=True),end=",",file=f)
-			print("],",file=f) #TODO: avoid to remove last "," manually
+			print("],",file=f)
 		print("}",file=f)
 
 def write_sqlite(outFile):
@@ -105,7 +110,20 @@ def write_sqlite(outFile):
 			conn.commit()
 	conn.close()
 
+def sigint_handler(signal, frame):
+	print("\nexiting.. ",end="")
+	if FORMAT=="json":
+		with open("outputs/out11sep.json",'rb+') as f:
+			#remove last "," in json ("}],}"):
+			f.seek(-4,os.SEEK_END)
+			f.truncate()
+			f.write(str.encode("\n}\n"))
+	print("bye!")
+	sys.exit(0)
+
 if __name__ == '__main__':
+
+	signal.signal(signal.SIGINT, sigint_handler)
 
 	parser = argparse.ArgumentParser(
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
@@ -113,14 +131,17 @@ if __name__ == '__main__':
 	parser.add_argument('-c','--continuum',action='store_true',
 		help='run continuously')
 	parser.add_argument('-v','--verbose',action='store_true')
-	parser.add_argument('-f','--format',choices=['json','sqlite'],default='json',
+	parser.add_argument('-f','--format',choices=['json','sqlite'],default=FORMAT,
 		help='format to store data')
 	parser.add_argument('-n','--nTopTTs', type=int, metavar='NUMBER',
 		help='limit to NUMBER top TTs on every location')
 	parser.add_argument('-l','--nFirstLocations', type=int, metavar='NUMBER',
 		help='limit to NUMBER first locations (sorted as in woeids.json)')
-	parser.add_argument('file',help='output file to store data')
+	parser.add_argument('file',
+		help='output file to store data')
 	args = parser.parse_args()
+	FORMAT = args.format
+	FILE = args.file
 
 	if args.continuum:
 		while True:
