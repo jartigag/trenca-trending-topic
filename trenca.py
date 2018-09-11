@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
-		usage="%(prog)s FILE [-cdfv] [-n] NUMBER [-l] NUMBER")
+		usage="%(prog)s FILE [-cvf] [json/sqlite] [-n] NUMBER [-l] NUMBER")
 	parser.add_argument('-c','--continuum',action='store_true',
 		help='run continuously')
 	parser.add_argument('-v','--verbose',action='store_true')
