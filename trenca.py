@@ -3,9 +3,14 @@
 # just a script to collect twitter's TTs
 #
 # usage: python3 trenca.py FILE [-cfv] [-n] NUMBER [-l] NUMBER
+#
+# example:
+# python trenca.py output.json -n 10 -l 1 --stdout
+# | awk '{print ""$1".com"}'
+# | xargs -L 1 python2 dnstwist.py >> typoDomainsTTs.txt
 
 __author__ = "@jartigag"
-__version__ = '0.5'
+__version__ = '0.6'
 
 import tweepy
 import argparse
@@ -29,7 +34,7 @@ n=0 # number of api reqs
 FORMAT = "json"
 FILE = ""
 
-def main(verbose,format,file,nTop, nLocs):
+def main(verbose,stdout,format,file,nTop, nLocs):
 	global secrets,s,results,n
 	try:
 
@@ -50,6 +55,9 @@ def main(verbose,format,file,nTop, nLocs):
 				for t in tt[0]['trends'][:nTop]:
 					print('	','%02d'%(tt[0]['trends'].index(t)+1),'-',t['name'],
 						'(%s tweets)'%(t['tweet_volume']) if t['tweet_volume'] is not None else '')
+			elif stdout:
+				for t in tt[0]['trends'][:nTop]:
+					print(str.strip(t['name'],"#")) #remove possible "#"
 		if format=='json':
 			write_json(file)
 		elif format=='sqlite':
@@ -127,25 +135,28 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
-		usage="%(prog)s FILE [-cvf] [json/sqlite] [-n] NUMBER [-l] NUMBER")
+		usage="%(prog)s FILE [-c] [-f] [json/sqlite] [-n] NUMBER [-l] NUMBER [-v/s]")
+	onlyOneGroup = parser.add_mutually_exclusive_group()
 	parser.add_argument('-c','--continuum',action='store_true',
 		help='run continuously')
-	parser.add_argument('-v','--verbose',action='store_true')
 	parser.add_argument('-f','--format',choices=['json','sqlite'],default=FORMAT,
 		help='format to store data')
-	parser.add_argument('-n','--nTopTTs', type=int, metavar='NUMBER',
-		help='limit to NUMBER top TTs on every location')
 	parser.add_argument('-l','--nFirstLocations', type=int, metavar='NUMBER',
 		help='limit to NUMBER first locations (sorted as in woeids.json)')
+	parser.add_argument('-n','--nTopTTs', type=int, metavar='NUMBER',
+		help='limit to NUMBER top TTs on every location')
 	parser.add_argument('file',
 		help='output file to store data')
+	onlyOneGroup.add_argument('-v','--verbose',action='store_true')
+	onlyOneGroup.add_argument('-s','--stdout',action='store_true',
+		help='print just TTs names')
 	args = parser.parse_args()
 	FORMAT = args.format
 	FILE = args.file
 
 	if args.continuum:
 		while True:
-			main(args.verbose,args.format,args.file,args.nTopTTs,args.nFirstLocations)
+			main(args.verbose,args.stdout,args.format,args.file,args.nTopTTs,args.nFirstLocations)
 			sleep(SLEEP_INTERVAL)
 	else:
-		main(args.verbose,args.format,args.file,args.nTopTTs,args.nFirstLocations)
+		main(args.verbose,args.stdout,args.format,args.file,args.nTopTTs,args.nFirstLocations)
