@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 # just a script to collect twitter's TTs
 #
-# usage: python3 trenca.py FILE [-cfv] [-n] NUMBER [-l] NUMBER
+# usage: python3 trenca.py FILE [-c] [-n] NUMBER [-l] NUMBER [-f] [json/sqlite] [-v/s]
 #
 # example:
-# python trenca.py output.json -n 10 -l 1 --stdout
+# python3 trenca.py output.json -n 10 -l 1 --stdout
 # | awk '{print ""$1".com"}'
 # | xargs -L 1 python2 dnstwist.py >> typoDomainsTTs.txt
 
@@ -24,6 +24,7 @@ import signal
 import sys
 import os
 
+# this is to rotate the API key if api limit is reached:
 from secrets import secrets
 s = 0 # counter of the actual secret: secrets[i]
 
@@ -135,7 +136,7 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser(
 		description="just a script to collect twitter's TTs, v%s by @jartigag" % __version__,
-		usage="%(prog)s FILE [-c] [-f] [json/sqlite] [-n] NUMBER [-l] NUMBER [-v/s]")
+		usage="%(prog)s FILE [-c] [-n] NUMBER [-l] NUMBER [-f] [json/sqlite] [-v/s]")
 	onlyOneGroup = parser.add_mutually_exclusive_group()
 	parser.add_argument('-c','--continuum',action='store_true',
 		help='run continuously')
